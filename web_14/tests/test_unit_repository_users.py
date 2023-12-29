@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 from libgravatar import Gravatar
 from sqlalchemy.orm import Session
-from src.database.models import User
+from src.database.models import Contact
 from src.schemas import UserModel
 from src.repository.users import (
     get_user_by_email,
@@ -18,8 +18,8 @@ class TestUsers(unittest.IsolatedAsyncioTestCase):
         self.db = MagicMock(spec=Session)
 
     async def test_get_user_by_email(self):
-        user = User(email="test@example.com")
-        self.db.query(User).filter(User.email == "test@example.com").first.return_value = user
+        user = Contact(email="test@example.com")
+        self.db.query(Contact).filter(Contact.email == "test@example.com").first.return_value = user
         result = await get_user_by_email("test@example.com", self.db)
         self.assertEqual(result, user)
 
@@ -42,19 +42,19 @@ class TestUsers(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(result.avatar)
 
     async def test_update_token(self):
-        user = User()
+        user = Contact()
         await update_token(user, "new_token", self.db)
         self.assertEqual(user.refresh_token, "new_token")
         self.db.commit.assert_called_once()
 
     async def test_update_user_avatar(self):
-        user = User()
+        user = Contact()
         await update_user_avatar(user, "new_avatar_url", self.db)
         self.assertEqual(user.avatar, "new_avatar_url")
         self.db.commit.assert_called_once()
 
     async def test_confirmed_email(self):
-        user = User(email="test@example.com", confirmed=False)
+        user = Contact(email="test@example.com", confirmed=False)
         self.db.query().filter().first.return_value = user
         await confirmed_email("test@example.com", self.db)
         self.assertTrue(user.confirmed)
