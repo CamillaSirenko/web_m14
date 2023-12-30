@@ -28,11 +28,14 @@ async def signup(body: UserModel, db: Session = Depends(get_db)):
     :return: A dict with the user and a detail message
     :doc-author: Trelent
     """
+    print("register")
     exist_user = await repository_users.get_user_by_email(body.email, db)
+    print(exist_user)
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")
     body.password = auth_service.get_password_hash(body.password)
     new_user = await repository_users.create_user(body, db)
+    print(new_user)
     return {"user": new_user, "detail": "User successfully created"}
 
 

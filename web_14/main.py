@@ -1,8 +1,8 @@
 from fastapi import FastAPI, BackgroundTasks, Depends, HTTPException
-
 from pathlib import Path
-from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi.middleware.cors import CORSMiddleware
+import redis.asyncio as redis
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
@@ -18,12 +18,18 @@ from fastapi.routing import Request
 import os
 import uvicorn
 import cloudinary
-
+from src.routes.auth  import router as auth_router
 from src.schemas import EmailSchema
+from src.routes.contacts import router as contacts_router
+
 
 load_dotenv()
 
 app = FastAPI()
+
+app.include_router(contacts_router, prefix='/api')
+app.include_router(auth_router, prefix='/api')
+
 
 
 cloudinary.config(
@@ -54,11 +60,16 @@ conf = ConnectionConfig(
     TEMPLATE_FOLDER=Path(__file__).parent / 'templates',
 )
 
-limiter = FastAPILimiter(
-    key_func=lambda _: "global",  # Идентификатор для глобального обмеження
-    redis_url="redis://localhost:6379/0",
-)
+# limiter = FastAPILimiter(
+#     key_func=lambda _: "global",  # Идентификатор для глобального обмеження
+#     redis_url="redis://localhost:6379/0",
+# )
 
+
+@app.on_event("startup")
+async def startup():
+    r = await redis.Redis(host=config.REDIS_DOMAIN, port=config.REDIS_PORT, password= config.REDIS_PASSWORD, db=0, encoding="utf-8", decode_responses=True)
+    await FastAPILimiter.init(r)
 
 @app.get("/contacts/", dependencies=[Depends(RateLimiter(times=5, minutes=1))])
 async def read_contacts():
@@ -88,39 +99,39 @@ async def read_user_contacts(token: str = Depends(oauth2_scheme)):
 
 
 # Застосування глобального обмеження на швидкість для всіх маршрутів
-@app.middleware("http")
-async def limiter_middleware(request: Request, call_next):
-    """
-    The limiter_middleware function is a middleware function that initializes the limiter object,
-        calls the next middleware in line (or the route handler if there are no more), and then closes
-        out the limiter object. This allows us to use asyncio with our rate limiting.
+# @app.middleware("http")
+# async def limiter_middleware(request: Request, call_next):
+#     """
+#     The limiter_middleware function is a middleware function that initializes the limiter object,
+#         calls the next middleware in line (or the route handler if there are no more), and then closes
+#         out the limiter object. This allows us to use asyncio with our rate limiting.
     
-    :param request: Request: Get the request object
-    :param call_next: Pass the request to the next middleware in line
-    :return: The response from the next middleware
-    :doc-author: Trelent
-    """
-    await limiter.init()
-    response = await call_next(request)
-    await limiter.close()
-    return response
+#     :param request: Request: Get the request object
+#     :param call_next: Pass the request to the next middleware in line
+#     :return: The response from the next middleware
+#     :doc-author: Trelent
+#     """
+#     await limiter.init()
+#     response = await call_next(request)
+#     await limiter.close()
+#     return response
 
 
-# Додавання обробника помилок для обробки випадку перевищення обмежень
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    """
-    The http_exception_handler function is a custom exception handler that returns JSON instead of HTML for HTTP errors.
-        Args:
-            request (Request): The Request object.
-            exc (HTTPException): An HTTPException instance, containing all the information about the error that occurred.
+# # Додавання обробника помилок для обробки випадку перевищення обмежень
+# @app.exception_handler(HTTPException)
+# async def http_exception_handler(request, exc):
+#     """
+#     The http_exception_handler function is a custom exception handler that returns JSON instead of HTML for HTTP errors.
+#         Args:
+#             request (Request): The Request object.
+#             exc (HTTPException): An HTTPException instance, containing all the information about the error that occurred.
     
-    :param request: Access the request object
-    :param exc: Pass the exception object to the handler
-    :return: A json response with the error
-    :doc-author: Trelent
-    """
-    return {"error": exc.detail}
+#     :param request: Access the request object
+#     :param exc: Pass the exception object to the handler
+#     :return: A json response with the error
+#     :doc-author: Trelent
+#     """
+#     return {"error": exc.detail}
 
 
 @app.post("/send-email")

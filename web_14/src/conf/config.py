@@ -23,15 +23,6 @@ class Settings(BaseSettings):
     @field_validator("ALGORITHM")
     @classmethod
     def validate_algorithm(cls, v: Any):
-        """
-        The validate_algorithm function is a validator that ensures the algorithm used to sign the JWT is either HS256 or HS512.
-            This function will raise a ValueError if an invalid algorithm is passed in.
-        
-        :param cls: Pass the class that is being validated
-        :param v: Any: Validate the value of the algorithm
-        :return: A value
-        :doc-author: Trelent
-        """
         if v not in ["HS256", "HS512"]:
             raise ValueError("algorithm must be HS256 or HS512")
         return v

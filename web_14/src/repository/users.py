@@ -12,6 +12,7 @@ async def get_user_by_email(email: str, db: Session) -> User:
     :param db: The database session.
     :return: The user object.
     """
+    print("user by email", email)
     return db.query(User).filter(User.email == email).first()
 
 async def create_user(body: UserModel, db: Session) -> User:

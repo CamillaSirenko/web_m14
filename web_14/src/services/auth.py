@@ -3,10 +3,11 @@ from fastapi import APIRouter, HTTPException, Depends, status, Security, Backgro
 from jose import JWTError, jwt
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
+
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from src.services.email import send_email
+# from src.services.email import send_email
 from src.database.db import get_db
 from src.repository import users as repository_users
 from src.schemas import UserModel, UserResponse
@@ -164,27 +165,27 @@ class Auth:
         return token
 
 
-@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def signup(body: UserModel, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db)):
-    """
-    The signup function creates a new user in the database.
-        It also sends an email to the user's email address for confirmation.
-        The function returns a JSON object containing the newly created user and a message.
+# @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+# async def signup(body: UserModel, background_tasks: BackgroundTasks, request: Request, db: Session = Depends(get_db)):
+#     """
+#     The signup function creates a new user in the database.
+#         It also sends an email to the user's email address for confirmation.
+#         The function returns a JSON object containing the newly created user and a message.
     
-    :param body: UserModel: Get the data from the request body
-    :param background_tasks: BackgroundTasks: Add a task to the background tasks queue
-    :param request: Request: Get the base url of the server
-    :param db: Session: Get the database session
-    :return: A dictionary with two keys: user and detail
-    :doc-author: Trelent
-    """
-    exist_user = await repository_users.get_user_by_email(body.email, db)
-    if exist_user:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")
-    body.password = auth_service.get_password_hash(body.password)
-    new_user = await repository_users.create_user(body, db)
-    background_tasks.add_task(send_email, new_user.email, new_user.username, request.base_url)
-    return {"user": new_user, "detail": "User successfully created. Check your email for confirmation."}
+#     :param body: UserModel: Get the data from the request body
+#     :param background_tasks: BackgroundTasks: Add a task to the background tasks queue
+#     :param request: Request: Get the base url of the server
+#     :param db: Session: Get the database session
+#     :return: A dictionary with two keys: user and detail
+#     :doc-author: Trelent
+#     """
+#     exist_user = await repository_users.get_user_by_email(body.email, db)
+#     if exist_user:
+#         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")
+#     body.password = auth_service.get_password_hash(body.password)
+#     new_user = await repository_users.create_user(body, db)
+#     background_tasks.add_task(send_email, new_user.email, new_user.username, request.base_url)
+#     return {"user": new_user, "detail": "User successfully created. Check your email for confirmation."}
 
 
 
